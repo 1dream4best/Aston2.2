@@ -63,8 +63,7 @@ public class UserService {
         validateUser(name, email, age);
 
         return executeInTransaction(session ->
-                userDao.save(session, new User(name, email, age))
-        );
+                userDao.save(session, new User(name, email, age)));
     }
 
     public User getUserById(Long id) {
@@ -74,10 +73,7 @@ public class UserService {
                 userDao.findById(session, id)
                         .orElseThrow(() ->
                                 new IllegalArgumentException(
-                                        "Пользователь с ID " + id + " не найден"
-                                )
-                        )
-        );
+                                        "Пользователь с ID " + id + " не найден" )));
     }
 
     public List<User> getAllUsers() {
@@ -88,22 +84,19 @@ public class UserService {
             Long id,
             String name,
             String email,
-            int age
-    ) {
+            int age) {
         validateId(id);
         validateUser(name, email, age);
 
         return executeInTransaction(session ->
-                userDao.update(session, id, name, email, age)
-        );
+                userDao.update(session, id, name, email, age));
     }
 
     public boolean deleteUser(Long id) {
         validateId(id);
 
         return executeInTransaction(session ->
-                userDao.delete(session, id)
-        );
+                userDao.delete(session, id));
     }
 
     private void validateUser(String name, String email, int age) {
