@@ -15,7 +15,6 @@ public class Main {
 
     public static void main(String[] args) {
         try {
-            // Проверяем инициализацию Hibernate до запуска меню.
             HibernateUtil.getSessionFactory();
 
             UserService userService = new UserService();
@@ -26,8 +25,7 @@ public class Main {
         } catch (Exception e) {
             log.error("Не удалось запустить приложение", e);
             System.err.println(
-                    "Ошибка запуска. Проверьте PostgreSQL и hibernate.cfg.xml."
-            );
+                    "Ошибка запуска. Проверьте PostgreSQL и hibernate.cfg.xml.");
         } finally {
             try {
                 HibernateUtil.shutdown();

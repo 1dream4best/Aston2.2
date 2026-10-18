@@ -20,8 +20,7 @@ public interface UserDao {
             Long id,
             String name,
             String email,
-            int age
-    );
+            int age);
 
     boolean delete(Session session, Long id);
 }
