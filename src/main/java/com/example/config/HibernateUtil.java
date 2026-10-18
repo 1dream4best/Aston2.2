@@ -14,7 +14,6 @@ public final class HibernateUtil {
             buildSessionFactory();
 
     private HibernateUtil() {
-        // Запрещаем создание экземпляров класса
     }
 
     private static SessionFactory buildSessionFactory() {
@@ -23,8 +22,7 @@ public final class HibernateUtil {
         if (password == null || password.isBlank()) {
             throw new ExceptionInInitializerError(
                     "Не задана переменная окружения DB_PASSWORD. " +
-                            "Настрой её перед запуском приложения."
-            );
+                            "Настрой её перед запуском приложения.");
         }
 
         try {
@@ -33,8 +31,7 @@ public final class HibernateUtil {
 
             configuration.setProperty(
                     "hibernate.connection.password",
-                    password
-            );
+                    password);
 
             SessionFactory factory =
                     configuration.buildSessionFactory();
