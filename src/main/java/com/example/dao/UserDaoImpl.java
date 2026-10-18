@@ -40,8 +40,7 @@ public class UserDaoImpl implements UserDao {
             Long id,
             String name,
             String email,
-            int age
-    ) {
+            int age) {
         Optional<User> result = findById(session, id);
 
         if (result.isEmpty()) {
@@ -53,7 +52,6 @@ public class UserDaoImpl implements UserDao {
         user.setEmail(email);
         user.setAge(age);
 
-        // Hibernate обнаружит изменения автоматически.
         log.debug("Обновление пользователя id={}", id);
         return true;
     }
