@@ -1,4 +1,3 @@
-
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
 
@@ -26,8 +25,9 @@
         </encoder>
     </appender>
 
-    <logger name="org.hibernate.SQL" level="DEBUG"/>
-    <logger name="org.hibernate.orm.jdbc.bind" level="TRACE"/>
+    <logger name="org.hibernate.engine.jdbc.spi.SqlExceptionHelper" level="OFF"/>
+    <logger name="org.hibernate.SQL" level="OFF"/>
+    <logger name="org.hibernate.orm.jdbc.bind" level="OFF"/>
 
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>

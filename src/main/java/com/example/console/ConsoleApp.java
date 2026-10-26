@@ -3,6 +3,7 @@ package com.example.console;
 
 import com.example.entity.User;
 import com.example.service.UserService;
+import com.example.service.DuplicateEmailException;
 
 import org.hibernate.HibernateException;
 import org.slf4j.Logger;
@@ -42,13 +43,21 @@ public class ConsoleApp {
                     case "0" -> running = false;
                     default -> System.out.println("Неизвестная команда");
                 }
+
             } catch (IllegalArgumentException e) {
                 System.out.println("Ошибка: " + e.getMessage());
+
+            } catch (DuplicateEmailException e) {
+                System.out.println("Ошибка: " + e.getMessage());
+
             } catch (HibernateException e) {
-                System.out.println("Ошибка Hibernate или PostgreSQL. Подробности в логах.");
+                System.out.println(
+                        "Ошибка базы данных. Подробности записаны в лог.");
                 log.error("Ошибка базы данных", e);
+
             } catch (RuntimeException e) {
-                System.out.println("Операция не выполнена. Проверьте логи.");
+                System.out.println(
+                        "Операция не выполнена. Подробности записаны в лог.");
                 log.error("Ошибка приложения", e);
             }
         }
@@ -72,6 +81,7 @@ public class ConsoleApp {
         int age = readInt("Возраст: ");
 
         User user = userService.createUser(name, email, age);
+
         System.out.println("Пользователь создан:");
         System.out.println(user);
     }
@@ -131,8 +141,8 @@ public class ConsoleApp {
         try {
             return Long.parseLong(readLine(prompt));
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("ID должен быть целым числом");
+            throw new IllegalArgumentException(
+                    "ID должен быть целым числом");
         }
     }
 }
-

@@ -1,4 +1,4 @@
-package com.example.config;
+ package com.example.config;
 
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
@@ -17,17 +17,29 @@ public final class HibernateUtil {
     }
 
     private static SessionFactory buildSessionFactory() {
-        String password = System.getenv("DB_PASSWORD");
-
-        if (password == null || password.isBlank()) {
-            throw new ExceptionInInitializerError(
-                    "Не задана переменная окружения DB_PASSWORD. " +
-                            "Настрой её перед запуском приложения.");
-        }
-
         try {
             Configuration configuration =
                     new Configuration().configure("hibernate.cfg.xml");
+
+            setPropertyIfPresent(
+                    configuration,
+                    "hibernate.connection.url");
+
+            setPropertyIfPresent(
+                    configuration,
+                    "hibernate.connection.username");
+
+            String password = System.getProperty("DB_PASSWORD");
+
+            if (password == null || password.isBlank()) {
+                password = System.getenv("DB_PASSWORD");
+            }
+
+            if (password == null || password.isBlank()) {
+                throw new IllegalStateException(
+                        "Не задан пароль БД. Укажи системное свойство "
+                                + "DB_PASSWORD или переменную окружения DB_PASSWORD.");
+            }
 
             configuration.setProperty(
                     "hibernate.connection.password",
@@ -42,6 +54,17 @@ public final class HibernateUtil {
         } catch (Exception e) {
             log.error("Не удалось инициализировать Hibernate", e);
             throw new ExceptionInInitializerError(e);
+        }
+    }
+
+    private static void setPropertyIfPresent(
+            Configuration configuration,
+            String propertyName
+    ) {
+        String value = System.getProperty(propertyName);
+
+        if (value != null && !value.isBlank()) {
+            configuration.setProperty(propertyName, value);
         }
     }
 
