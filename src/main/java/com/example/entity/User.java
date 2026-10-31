@@ -1,4 +1,3 @@
-
 package com.example.entity;
 
 import jakarta.persistence.*;
@@ -79,8 +78,7 @@ public class User {
                 ", name='" + name + '\'' +
                 ", email='" + email + '\'' +
                 ", age=" + age +
-                ", createdAt=" + createdAt.withNano(0) +
+                ", createdAt=" + createdAt +
                 '}';
     }
 }
-

@@ -1,130 +1,94 @@
-
 package com.example.service;
 
-import com.example.config.HibernateUtil;
-import com.example.dao.UserDao;
-import com.example.dao.UserDaoImpl;
+import com.example.dao.UserRepository;
+import com.example.dto.UserRequest;
+import com.example.dto.UserResponse;
 import com.example.entity.User;
+import com.example.exception.UserNotFoundException;
 
-import org.hibernate.Session;
-import org.hibernate.Transaction;
-import org.hibernate.exception.ConstraintViolationException;
-import org.hibernate.exception.JDBCConnectionException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.function.Function;
 
+@Service
+@Transactional
 public class UserService {
 
-    private static final Logger log =
-            LoggerFactory.getLogger(UserService.class);
+    private final UserRepository userRepository;
 
-    private final UserDao userDao = new UserDaoImpl();
-
-    private <T> T executeInTransaction(Function<Session, T> operation) {
-        Transaction transaction = null;
-
-        try (Session session =
-                     HibernateUtil.getSessionFactory().openSession()) {
-
-            transaction = session.beginTransaction();
-
-            T result = operation.apply(session);
-
-            transaction.commit();
-            return result;
-
-        } catch (RuntimeException e) {
-
-            if (transaction != null && transaction.isActive()) {
-                try {
-                    transaction.rollback();
-                } catch (RuntimeException rollbackError) {
-                    e.addSuppressed(rollbackError);
-                    log.error("Ошибка отката транзакции", rollbackError);
-                }
-            }
-
-            if (e instanceof ConstraintViolationException) {
-                log.error("Нарушено ограничение БД", e);
-            } else if (e instanceof JDBCConnectionException) {
-                log.error("Нет соединения с PostgreSQL", e);
-            } else {
-                log.error("Ошибка операции с пользователем", e);
-            }
-
-            throw e;
-        }
+    public UserService(UserRepository userRepository) {
+        this.userRepository = userRepository;
     }
 
-    public User createUser(String name, String email, int age) {
-        validateUser(name, email, age);
-
-        return executeInTransaction(session ->
-                userDao.save(session, new User(name, email, age)));
+    @Transactional(readOnly = true)
+    public List<UserResponse> getAllUsers() {
+        return userRepository.findAll()
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
     }
 
-    public User getUserById(Long id) {
-        validateId(id);
+    @Transactional(readOnly = true)
+    public UserResponse getUserById(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() ->
+                        new UserNotFoundException("User with ID " + id + " not found"));
 
-        return executeInTransaction(session ->
-                userDao.findById(session, id)
-                        .orElseThrow(() ->
-                                new IllegalArgumentException(
-                                        "Пользователь с ID " + id + " не найден" )));
+        return mapToResponse(user);
     }
 
-    public List<User> getAllUsers() {
-        return executeInTransaction(userDao::findAll);
+    public UserResponse createUser(UserRequest request) {
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new IllegalArgumentException(
+                    "User with this email already exists");
+        }
+
+        User user = new User(
+                request.getName(),
+                request.getEmail(),
+                request.getAge());
+
+        User savedUser = userRepository.save(user);
+
+        return mapToResponse(savedUser);
     }
 
-    public boolean updateUser(
-            Long id,
-            String name,
-            String email,
-            int age) {
-        validateId(id);
-        validateUser(name, email, age);
+    public UserResponse updateUser(Long id, UserRequest request) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() ->
+                        new UserNotFoundException("User with ID " + id + " not found"));
 
-        return executeInTransaction(session ->
-                userDao.update(session, id, name, email, age));
+        userRepository.findByEmail(request.getEmail())
+                .filter(existing -> !existing.getId().equals(id))
+                .ifPresent(existing -> {
+                    throw new IllegalArgumentException(
+                            "User with this email already exists");
+                });
+
+        user.setName(request.getName());
+        user.setEmail(request.getEmail());
+        user.setAge(request.getAge());
+
+        User updatedUser = userRepository.save(user);
+
+        return mapToResponse(updatedUser);
     }
 
-    public boolean deleteUser(Long id) {
-        validateId(id);
+    public void deleteUser(Long id) {
+        if (!userRepository.existsById(id)) {
+            throw new UserNotFoundException("User with ID " + id + " not found");
+        }
 
-        return executeInTransaction(session ->
-                userDao.delete(session, id));
+        userRepository.deleteById(id);
     }
 
-    private void validateUser(String name, String email, int age) {
-        if (name == null || name.isBlank()) {
-            throw new IllegalArgumentException("Имя не должно быть пустым");
-        }
-
-        if (name.length() > 100) {
-            throw new IllegalArgumentException("Максимальная длина имени — 100 символов");
-        }
-
-        if (email == null || email.isBlank()) {
-            throw new IllegalArgumentException("Email не должен быть пустым");
-        }
-
-        if (email.length() > 255 ||
-                !email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) {
-            throw new IllegalArgumentException("Некорректный email");
-        }
-
-        if (age < 0 || age > 150) {
-            throw new IllegalArgumentException("Возраст должен быть от 0 до 150");
-        }
-    }
-
-    private void validateId(Long id) {
-        if (id == null || id <= 0) {
-            throw new IllegalArgumentException("ID должен быть положительным числом");
-        }
+    private UserResponse mapToResponse(User user) {
+        return new UserResponse(
+                user.getId(),
+                user.getName(),
+                user.getEmail(),
+                user.getAge(),
+                user.getCreatedAt());
     }
 }
