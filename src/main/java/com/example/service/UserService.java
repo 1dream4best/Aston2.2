@@ -5,6 +5,9 @@ import com.example.dto.UserRequest;
 import com.example.dto.UserResponse;
 import com.example.entity.User;
 import com.example.exception.UserNotFoundException;
+import com.example.messaging.UserEvent;
+import com.example.messaging.UserEventPublisher;
+import com.example.messaging.UserEventType;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,9 +19,13 @@ import java.util.List;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final UserEventPublisher userEventPublisher;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(
+            UserRepository userRepository,
+            UserEventPublisher userEventPublisher) {
         this.userRepository = userRepository;
+        this.userEventPublisher = userEventPublisher;
     }
 
     @Transactional(readOnly = true)
@@ -51,6 +58,9 @@ public class UserService {
 
         User savedUser = userRepository.save(user);
 
+        userEventPublisher.publish(
+                new UserEvent(UserEventType.CREATED, savedUser.getEmail()));
+
         return mapToResponse(savedUser);
     }
 
@@ -76,11 +86,14 @@ public class UserService {
     }
 
     public void deleteUser(Long id) {
-        if (!userRepository.existsById(id)) {
-            throw new UserNotFoundException("User with ID " + id + " not found");
-        }
+        User user = userRepository.findById(id)
+                .orElseThrow(() ->
+                        new UserNotFoundException("User with ID " + id + " not found"));
 
-        userRepository.deleteById(id);
+        userRepository.delete(user);
+
+        userEventPublisher.publish(
+                new UserEvent(UserEventType.DELETED, user.getEmail()));
     }
 
     private UserResponse mapToResponse(User user) {
