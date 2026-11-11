@@ -1,25 +1,43 @@
 package com.example.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
+@Schema(description = "Данные для создания или обновления пользователя")
 public class UserRequest {
 
-    @NotBlank(message = "Имя не может быть пустым")
-    @Size(max = 100, message = "Имя не должно превышать 100 символов")
+    @Schema(
+            description = "Имя пользователя",
+            example = "Anna",
+            requiredMode = Schema.RequiredMode.REQUIRED)
+
+    @NotBlank
+    @Size(max = 100)
     private String name;
 
-    @NotBlank(message = "Email не может быть пустым")
-    @Email(message = "Некорректный формат email")
-    @Size(max = 255, message = "Email не должен превышать 255 символов")
+    @Schema(
+            description = "Email пользователя. Должен быть уникальным",
+            example = "anna@example.com",
+            requiredMode = Schema.RequiredMode.REQUIRED)
+
+    @NotBlank
+    @Email
+    @Size(max = 255)
     private String email;
 
-    @Min(value = 1, message = "Возраст должен быть не меньше 1")
-    @Max(value = 120, message = "Возраст не должен превышать 120")
-    private int age;
+    @Schema(
+            description = "Возраст пользователя",
+            example = "25",
+            minimum = "1",
+            maximum = "120")
+
+    @Min(1)
+    @Max(120)
+    private Integer age;
 
     public UserRequest() {
     }
@@ -40,11 +58,11 @@ public class UserRequest {
         this.email = email;
     }
 
-    public int getAge() {
+    public Integer getAge() {
         return age;
     }
 
-    public void setAge(int age) {
+    public void setAge(Integer age) {
         this.age = age;
     }
 }

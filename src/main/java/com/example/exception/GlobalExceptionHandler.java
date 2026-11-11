@@ -6,6 +6,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import com.example.exception.DuplicateEmailException;
+
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -20,11 +22,19 @@ public class GlobalExceptionHandler {
                 .body(Map.of("error", exception.getMessage()));
     }
 
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<Map<String, String>> handleConflict(
-            IllegalArgumentException exception) {
+    @ExceptionHandler(DuplicateEmailException.class)
+    public ResponseEntity<Map<String, String>> handleDuplicateEmail(
+            DuplicateEmailException exception) {
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
+                .body(Map.of("error", exception.getMessage()));
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, String>> handleBadArgument(
+            IllegalArgumentException exception) {
+        return ResponseEntity
+                .badRequest()
                 .body(Map.of("error", exception.getMessage()));
     }
 

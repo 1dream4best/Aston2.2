@@ -5,7 +5,9 @@ import com.example.dto.UserResponse;
 import com.example.exception.GlobalExceptionHandler;
 import com.example.exception.UserNotFoundException;
 import com.example.service.UserService;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.example.exception.DuplicateEmailException;
+
+import static org.mockito.Mockito.when;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -20,7 +22,6 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -31,9 +32,6 @@ class UserControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
-
-    @Autowired
-    private ObjectMapper objectMapper;
 
     @MockitoBean
     private UserService userService;
@@ -53,9 +51,12 @@ class UserControllerTest {
 
         mockMvc.perform(get("/api/users"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(1))
-                .andExpect(jsonPath("$[0].name").value("Anna"))
-                .andExpect(jsonPath("$[0].email").value("anna@example.com"));
+                .andExpect(jsonPath("$._embedded.userResponseList[0].id").value(1))
+                .andExpect(jsonPath("$._embedded.userResponseList[0].name").value("Anna"))
+                .andExpect(jsonPath("$._embedded.userResponseList[0].email").value("anna@example.com"))
+                .andExpect(jsonPath("$._links.self.href").exists())
+                .andExpect(jsonPath("$._embedded.userResponseList[0]._links.self.href").exists())
+                .andExpect(jsonPath("$._embedded.userResponseList[0]._links.users.href").exists());
     }
 
     @Test
@@ -65,7 +66,10 @@ class UserControllerTest {
         mockMvc.perform(get("/api/users/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.name").value("Anna"));
+                .andExpect(jsonPath("$.name").value("Anna"))
+                .andExpect(jsonPath("$.email").value("anna@example.com"))
+                .andExpect(jsonPath("$._links.self.href").exists())
+                .andExpect(jsonPath("$._links.users.href").exists());
     }
 
     @Test
@@ -85,7 +89,8 @@ class UserControllerTest {
                         .content(requestBody))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.email").value("anna@example.com"));
+                .andExpect(jsonPath("$.email").value("anna@example.com"))
+                .andExpect(jsonPath("$._links.self.href").exists());
     }
 
     @Test
@@ -106,7 +111,8 @@ class UserControllerTest {
                         .content(requestBody))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.name").value("Anna"));
+                .andExpect(jsonPath("$.name").value("Anna"))
+                .andExpect(jsonPath("$._links.self.href").exists());
     }
 
     @Test
@@ -137,10 +143,52 @@ class UserControllerTest {
     @Test
     void getMissingUserShouldReturnNotFound() throws Exception {
         when(userService.getUserById(99L))
-                .thenThrow(new UserNotFoundException("User not found with id: 99"));
+                .thenThrow(new UserNotFoundException("Не найден пользователь с ID: 99"));
 
         mockMvc.perform(get("/api/users/99"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.error").value("User not found with id: 99"));
+                .andExpect(jsonPath("$.error").value("Не найден пользователь с ID: 99"));
+    }
+
+    @Test
+    void createUserWithDuplicateEmailShouldReturnConflict() throws Exception {
+        when(userService.createUser(any(UserRequest.class)))
+                .thenThrow(new DuplicateEmailException(
+                        "Пользователь с такой почтой уже был создан."));
+
+        String requestBody = """
+            {
+              "name": "Anna",
+              "email": "anna@example.com",
+              "age": 25
+            }
+            """;
+
+        mockMvc.perform(post("/api/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error")
+                        .value("Пользователь с такой почтой уже был создан."));
+    }
+
+    @Test
+    void createUserWithIllegalArgumentShouldReturnBadRequest() throws Exception {
+        when(userService.createUser(any(UserRequest.class)))
+                .thenThrow(new IllegalArgumentException("Недопустимый аргумент."));
+
+        String requestBody = """
+            {
+              "name": "Anna",
+              "email": "anna@example.com",
+              "age": 25
+            }
+            """;
+
+        mockMvc.perform(post("/api/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Недопустимый аргумент."));
     }
 }

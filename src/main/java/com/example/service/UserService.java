@@ -8,6 +8,7 @@ import com.example.exception.UserNotFoundException;
 import com.example.messaging.UserEvent;
 import com.example.messaging.UserEventPublisher;
 import com.example.messaging.UserEventType;
+import com.example.exception.DuplicateEmailException;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,15 +41,15 @@ public class UserService {
     public UserResponse getUserById(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() ->
-                        new UserNotFoundException("User with ID " + id + " not found"));
+                        new UserNotFoundException("Пользователь с ID " + id + " не найден."));
 
         return mapToResponse(user);
     }
 
     public UserResponse createUser(UserRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new IllegalArgumentException(
-                    "User with this email already exists");
+            throw new DuplicateEmailException(
+                    "Пользователь с такой почтой уже существует.");
         }
 
         User user = new User(
@@ -67,13 +68,13 @@ public class UserService {
     public UserResponse updateUser(Long id, UserRequest request) {
         User user = userRepository.findById(id)
                 .orElseThrow(() ->
-                        new UserNotFoundException("User with ID " + id + " not found"));
+                        new UserNotFoundException("Пользователь с ID " + id + " не найден."));
 
         userRepository.findByEmail(request.getEmail())
                 .filter(existing -> !existing.getId().equals(id))
                 .ifPresent(existing -> {
-                    throw new IllegalArgumentException(
-                            "User with this email already exists");
+                    throw new DuplicateEmailException(
+                            "Пользователь с такой почтой уже существует.");
                 });
 
         user.setName(request.getName());
@@ -88,7 +89,7 @@ public class UserService {
     public void deleteUser(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() ->
-                        new UserNotFoundException("User with ID " + id + " not found"));
+                        new UserNotFoundException("Пользователь с ID " + id + " не найден."));
 
         userRepository.delete(user);
 
