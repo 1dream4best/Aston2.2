@@ -1,19 +1,19 @@
 package com.example.controller;
 
+import com.example.assembler.UserModelAssembler;
 import com.example.dto.UserRequest;
 import com.example.dto.UserResponse;
+import com.example.exception.DuplicateEmailException;
 import com.example.exception.GlobalExceptionHandler;
 import com.example.exception.UserNotFoundException;
 import com.example.service.UserService;
-import com.example.exception.DuplicateEmailException;
 
-import static org.mockito.Mockito.when;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
@@ -23,11 +23,15 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
+
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(UserController.class)
-@Import(GlobalExceptionHandler.class)
+@Import({
+        GlobalExceptionHandler.class,
+        UserModelAssembler.class
+})
 class UserControllerTest {
 
     @Autowired
@@ -56,7 +60,9 @@ class UserControllerTest {
                 .andExpect(jsonPath("$._embedded.userResponseList[0].email").value("anna@example.com"))
                 .andExpect(jsonPath("$._links.self.href").exists())
                 .andExpect(jsonPath("$._embedded.userResponseList[0]._links.self.href").exists())
-                .andExpect(jsonPath("$._embedded.userResponseList[0]._links.users.href").exists());
+                .andExpect(jsonPath("$._embedded.userResponseList[0]._links.users.href").exists())
+                .andExpect(jsonPath("$._embedded.userResponseList[0]._links.update.href").exists())
+                .andExpect(jsonPath("$._embedded.userResponseList[0]._links.delete.href").exists());
     }
 
     @Test
@@ -69,7 +75,9 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.name").value("Anna"))
                 .andExpect(jsonPath("$.email").value("anna@example.com"))
                 .andExpect(jsonPath("$._links.self.href").exists())
-                .andExpect(jsonPath("$._links.users.href").exists());
+                .andExpect(jsonPath("$._links.users.href").exists())
+                .andExpect(jsonPath("$._links.update.href").exists())
+                .andExpect(jsonPath("$._links.delete.href").exists());
     }
 
     @Test
@@ -90,7 +98,9 @@ class UserControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.email").value("anna@example.com"))
-                .andExpect(jsonPath("$._links.self.href").exists());
+                .andExpect(jsonPath("$._links.self.href").exists())
+                .andExpect(jsonPath("$._links.update.href").exists())
+                .andExpect(jsonPath("$._links.delete.href").exists());
     }
 
     @Test
@@ -112,7 +122,9 @@ class UserControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.name").value("Anna"))
-                .andExpect(jsonPath("$._links.self.href").exists());
+                .andExpect(jsonPath("$._links.self.href").exists())
+                .andExpect(jsonPath("$._links.update.href").exists())
+                .andExpect(jsonPath("$._links.delete.href").exists());
     }
 
     @Test
@@ -157,12 +169,12 @@ class UserControllerTest {
                         "Пользователь с такой почтой уже был создан."));
 
         String requestBody = """
-            {
-              "name": "Anna",
-              "email": "anna@example.com",
-              "age": 25
-            }
-            """;
+                {
+                  "name": "Anna",
+                  "email": "anna@example.com",
+                  "age": 25
+                }
+                """;
 
         mockMvc.perform(post("/api/users")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -178,12 +190,12 @@ class UserControllerTest {
                 .thenThrow(new IllegalArgumentException("Недопустимый аргумент."));
 
         String requestBody = """
-            {
-              "name": "Anna",
-              "email": "anna@example.com",
-              "age": 25
-            }
-            """;
+                {
+                  "name": "Anna",
+                  "email": "anna@example.com",
+                  "age": 25
+                }
+                """;
 
         mockMvc.perform(post("/api/users")
                         .contentType(MediaType.APPLICATION_JSON)
