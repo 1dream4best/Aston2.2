@@ -1,4 +1,24 @@
 services:
+
+  postgres:
+    image: postgres:16
+    container_name: aston-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: user_service_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d user_service_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - aston-network
+
   kafka:
     image: apache/kafka:3.9.1
     container_name: aston-kafka
@@ -80,11 +100,13 @@ services:
     environment:
       SPRING_CONFIG_IMPORT: configserver:http://config-server:8888
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
-      SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5432/user_service_db
+      DB_URL: jdbc:postgresql://postgres:5432/user_service_db
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       DB_USERNAME: postgres
       DB_PASSWORD: ${DB_PASSWORD}
     depends_on:
+      postgres:
+        condition: service_healthy
       config-server:
         condition: service_healthy
       discovery-server:
@@ -139,3 +161,6 @@ services:
 networks:
   aston-network:
     driver: bridge
+
+volumes:
+  postgres_data:
